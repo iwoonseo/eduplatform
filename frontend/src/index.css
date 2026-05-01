@@ -41,32 +41,105 @@
   --input-bg: #1e293b;
 }
 
+/* Navbar */
 [data-theme="dark"] .navbar { background: var(--navbar-bg); }
 [data-theme="dark"] .navbar-links.open { background: #1e293b; }
 [data-theme="dark"] .user-dropdown { background: #1e293b; }
 [data-theme="dark"] .dropdown-item:hover { background: #0f172a; }
-[data-theme="dark"] .course-card, [data-theme="dark"] .my-course-card,
-[data-theme="dark"] .dash-stat, [data-theme="dark"] .activity-card,
-[data-theme="dark"] .badge-card, [data-theme="dark"] .detail-card,
-[data-theme="dark"] .auth-card, [data-theme="dark"] .ai-rec-card,
-[data-theme="dark"] .filter-group, [data-theme="dark"] .review-card {
+
+/* Cards & panels */
+[data-theme="dark"] .course-card,
+[data-theme="dark"] .my-course-card,
+[data-theme="dark"] .dash-stat,
+[data-theme="dark"] .activity-card,
+[data-theme="dark"] .badge-card,
+[data-theme="dark"] .detail-card,
+[data-theme="dark"] .auth-card,
+[data-theme="dark"] .ai-rec-card,
+[data-theme="dark"] .filter-group,
+[data-theme="dark"] .review-card,
+[data-theme="dark"] .step-card,
+[data-theme="dark"] .category-card,
+[data-theme="dark"] .filters-panel,
+[data-theme="dark"] .lesson-item,
+[data-theme="dark"] .reviews-summary,
+[data-theme="dark"] .review-form,
+[data-theme="dark"] .chat-window,
+[data-theme="dark"] .chat-header,
+[data-theme="dark"] .msg-bubble.them,
+[data-theme="dark"] .admin-card,
+[data-theme="dark"] .instructor-card,
+[data-theme="dark"] .stat-card,
+[data-theme="dark"] .panel-card,
+[data-theme="dark"] .modal-box,
+[data-theme="dark"] .course-form,
+[data-theme="dark"] .section-card {
   background: var(--card-bg); border-color: var(--border); color: var(--text);
 }
-[data-theme="dark"] input, [data-theme="dark"] textarea, [data-theme="dark"] select {
+
+/* Inputs */
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
   background: var(--input-bg); border-color: var(--border); color: var(--text);
 }
+
+/* Stats bar on home page */
+[data-theme="dark"] .stats-bar { background: #1e293b; border-color: var(--border); }
+
+/* Auth page background */
+[data-theme="dark"] .auth-page { background: linear-gradient(135deg, #0f172a, #1e1b4b); }
+
+/* Demo buttons */
+[data-theme="dark"] .demo-btn { background: #0f172a; border-color: var(--border); color: var(--text); }
+[data-theme="dark"] .demo-btn:hover { border-color: var(--primary); color: var(--primary); background: #312e81; }
+
+/* Tags */
+[data-theme="dark"] .tag.level { background: #422006; color: #fcd34d; }
+[data-theme="dark"] .tag.cert  { background: #052e16; color: #34d399; }
+[data-theme="dark"] .free-tag  { background: #052e16; color: #34d399; }
+[data-theme="dark"] .completed-badge { background: #052e16; color: #34d399; }
+
+/* Lesson item completed */
+[data-theme="dark"] .lesson-item.completed { background: #052e16; border-color: #065f46; }
+
+/* Skeleton loader */
+[data-theme="dark"] .card-skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+}
+
+/* Hero sections */
 [data-theme="dark"] .hero { background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%); }
 [data-theme="dark"] .how-section { background: #1e293b; }
 [data-theme="dark"] .cta-section { background: linear-gradient(135deg, #3730a3, #1e1b4b); }
+[data-theme="dark"] .courses-hero { background: linear-gradient(135deg, #3730a3 0%, #1e1b4b 100%); }
+
+/* Footer */
 [data-theme="dark"] .footer { background: #020617; }
+
+/* Learn page */
 [data-theme="dark"] .learn-sidebar { background: #1e293b; border-color: var(--border); }
-[data-theme="dark"] .sidebar-lesson:hover, [data-theme="dark"] .sidebar-lesson.active { background: #312e81; }
+[data-theme="dark"] .sidebar-lesson:hover { background: #0f172a; }
+[data-theme="dark"] .sidebar-lesson.active { background: #312e81; color: #a5b4fc; }
+
+/* Widgets */
 [data-theme="dark"] .pomodoro-widget { background: #1e293b; border-color: var(--border); }
 [data-theme="dark"] .notes-panel { background: #1e293b; border-color: var(--border); }
 [data-theme="dark"] .notes-panel textarea { background: #0f172a; color: var(--text); border-color: var(--border); }
 [data-theme="dark"] .streak-widget { background: linear-gradient(135deg, #1e293b, #0f172a); border-color: var(--border); }
 
+/* Tables */
+[data-theme="dark"] table { background: var(--card-bg); color: var(--text); }
+[data-theme="dark"] th { background: #0f172a; color: var(--text-muted); }
+[data-theme="dark"] td { border-color: var(--border); }
+[data-theme="dark"] tr:hover td { background: #0f172a; }
+
+/* Error alert */
+[data-theme="dark"] .error-alert { background: #2d0a0a; border-color: #7f1d1d; color: #fca5a5; }
+
 /* Dark mode transition */
+*, *::before, *::after { transition: background-color var(--transition), border-color var(--transition), color var(--transition); }
 body { transition: background var(--transition), color var(--transition); }
 .card-bg-transition { transition: background var(--transition); }
 
