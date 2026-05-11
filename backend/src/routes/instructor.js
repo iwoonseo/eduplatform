@@ -142,7 +142,7 @@ router.post('/courses/:id/lessons', authMiddleware, instructorOnly, (req, res) =
   if (course.instructor !== req.user.id && req.user.role !== 'admin')
     return res.status(403).json({ message: 'Это не ваш курс' });
 
-  const { title, videoUrl, description, duration, isFree } = req.body;
+  const { title, videoFileName, videoFileSize, description, duration, isFree } = req.body;
   if (!title) return res.status(400).json({ message: 'Укажите название урока' });
 
   const existingLessons = db.lessons.filter(l => l.courseId === req.params.id);
@@ -150,13 +150,39 @@ router.post('/courses/:id/lessons', authMiddleware, instructorOnly, (req, res) =
     id: uuidv4(),
     courseId: req.params.id,
     title,
-    videoUrl: videoUrl || '',
+    videoUrl: '',           // заполняется после одобрения модератором
+    videoFileName: videoFileName || '',
+    videoFileSize: videoFileSize || 0,
+    videoStatus: videoFileName ? 'pending' : 'no_video', // pending | approved | rejected | no_video
+    videoRejectNote: '',
     description: description || '',
     duration: duration || '0 мин',
     order: existingLessons.length + 1,
-    isFree: isFree || false
+    isFree: isFree || false,
+    uploadedAt: videoFileName ? new Date().toISOString() : null
   };
   db.lessons.push(lesson);
+
+  // Если загружено видео — создать заявку для модератора
+  if (videoFileName) {
+    const instructor = db.users.find(u => u.id === req.user.id);
+    db.videoRequests.push({
+      id: uuidv4(),
+      lessonId: lesson.id,
+      courseId: req.params.id,
+      instructorId: req.user.id,
+      instructorName: instructor ? instructor.name : 'Неизвестно',
+      lessonTitle: title,
+      courseTitle: course.title,
+      videoFileName,
+      videoFileSize,
+      status: 'pending',
+      submittedAt: new Date().toISOString(),
+      reviewedAt: null,
+      reviewNote: ''
+    });
+  }
+
   // Обновить lessonCount
   course.lessonCount = db.lessons.filter(l => l.courseId === course.id).length;
   res.status(201).json(lesson);
@@ -172,12 +198,41 @@ router.put('/courses/:courseId/lessons/:lessonId', authMiddleware, instructorOnl
   const lesson = db.lessons.find(l => l.id === req.params.lessonId);
   if (!lesson) return res.status(404).json({ message: 'Урок не найден' });
 
-  const { title, videoUrl, description, duration, isFree } = req.body;
+  const { title, videoFileName, videoFileSize, description, duration, isFree } = req.body;
   if (title) lesson.title = title;
-  if (videoUrl !== undefined) lesson.videoUrl = videoUrl;
   if (description !== undefined) lesson.description = description;
   if (duration) lesson.duration = duration;
   if (isFree !== undefined) lesson.isFree = isFree;
+
+  // Если загружается новое видео — сбросить статус на pending
+  if (videoFileName && videoFileName !== lesson.videoFileName) {
+    lesson.videoFileName = videoFileName;
+    lesson.videoFileSize = videoFileSize || 0;
+    lesson.videoStatus = 'pending';
+    lesson.videoUrl = '';
+    lesson.videoRejectNote = '';
+    lesson.uploadedAt = new Date().toISOString();
+
+    // Удалить старую заявку и создать новую
+    db.videoRequests = db.videoRequests.filter(v => v.lessonId !== lesson.id);
+    const instructor = db.users.find(u => u.id === req.user.id);
+    db.videoRequests.push({
+      id: uuidv4(),
+      lessonId: lesson.id,
+      courseId: req.params.courseId,
+      instructorId: req.user.id,
+      instructorName: instructor ? instructor.name : 'Неизвестно',
+      lessonTitle: lesson.title,
+      courseTitle: db.courses.find(c => c.id === req.params.courseId)?.title || '',
+      videoFileName,
+      videoFileSize,
+      status: 'pending',
+      submittedAt: new Date().toISOString(),
+      reviewedAt: null,
+      reviewNote: ''
+    });
+  }
+
   res.json(lesson);
 });
 

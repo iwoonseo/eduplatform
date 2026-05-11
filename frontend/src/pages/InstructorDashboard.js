@@ -153,23 +153,60 @@ function CourseModal({ course, onClose, onSave }) {
 
 /* ── Lesson Modal ────────────────────────────────────── */
 function LessonModal({ courseId, lesson, onClose, onSave }) {
-  const [form, setForm] = useState(lesson || {
-    title: '', videoUrl: '', description: '', duration: '', isFree: false
+  const [form, setForm] = useState({
+    title:       lesson?.title       || '',
+    description: lesson?.description || '',
+    duration:    lesson?.duration    || '',
+    isFree:      lesson?.isFree      || false,
   });
-  const [saving, setSaving] = useState(false);
+  const [videoFile, setVideoFile]       = useState(null);   // выбранный файл
+  const [uploading, setUploading]       = useState(false);
+  const [uploadPct, setUploadPct]       = useState(0);
+  const [saving, setSaving]             = useState(false);
+  const fileRef = React.useRef();
+
+  /* Симуляция загрузки файла на сервер */
+  const simulateUpload = () => new Promise(resolve => {
+    setUploading(true);
+    setUploadPct(0);
+    let pct = 0;
+    const iv = setInterval(() => {
+      pct += Math.floor(Math.random() * 15) + 5;
+      if (pct >= 100) { pct = 100; clearInterval(iv); setUploading(false); resolve(); }
+      setUploadPct(pct);
+    }, 150);
+  });
 
   const handleSave = async () => {
     if (!form.title) return;
     setSaving(true);
     try {
+      // Если выбран файл — симулируем загрузку
+      if (videoFile) await simulateUpload();
+
+      const payload = {
+        ...form,
+        videoFileName: videoFile ? videoFile.name : (lesson?.videoFileName || ''),
+        videoFileSize: videoFile ? videoFile.size : (lesson?.videoFileSize || 0),
+      };
+
       let res;
-      if (lesson?.id) res = await api.put(`/instructor/courses/${courseId}/lessons/${lesson.id}`, form);
-      else            res = await api.post(`/instructor/courses/${courseId}/lessons`, form);
+      if (lesson?.id) res = await api.put(`/instructor/courses/${courseId}/lessons/${lesson.id}`, payload);
+      else            res = await api.post(`/instructor/courses/${courseId}/lessons`, payload);
       onSave(res.data);
       onClose();
     } catch { /* ignore */ }
-    finally { setSaving(false); }
+    finally { setSaving(false); setUploading(false); }
   };
+
+  const formatSize = bytes => {
+    if (!bytes) return '';
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} КБ`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} МБ`;
+  };
+
+  const existingVideo = lesson?.videoFileName;
+  const existingStatus = lesson?.videoStatus;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -183,11 +220,59 @@ function LessonModal({ courseId, lesson, onClose, onSave }) {
             <label>Название урока *</label>
             <input value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="Введение в тему..." />
           </div>
+
+          {/* ── Загрузка видео ── */}
           <div className="form-group">
-            <label>Ссылка на видео (YouTube embed URL)</label>
-            <input value={form.videoUrl} onChange={e => setForm({...form, videoUrl: e.target.value})} placeholder="https://www.youtube.com/embed/..." />
-            <small>Пример: https://www.youtube.com/embed/PkZNo7MFNFg</small>
+            <label>Видео урока</label>
+
+            {/* Текущий статус если редактируем */}
+            {existingVideo && !videoFile && (
+              <div className={`video-status-bar status-${existingStatus}`}>
+                {existingStatus === 'pending'   && <span>⏳ Видео на проверке у модератора: <b>{existingVideo}</b></span>}
+                {existingStatus === 'approved'  && <span>✅ Видео одобрено: <b>{existingVideo}</b></span>}
+                {existingStatus === 'rejected'  && (
+                  <span>❌ Видео отклонено: <b>{existingVideo}</b>
+                    {lesson?.videoRejectNote && <em> — {lesson.videoRejectNote}</em>}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Выбранный файл */}
+            {videoFile && (
+              <div className="video-selected">
+                <span>🎬 {videoFile.name}</span>
+                <span className="video-size">{formatSize(videoFile.size)}</span>
+                <button className="btn-icon-sm" onClick={() => { setVideoFile(null); setUploadPct(0); }}>✕</button>
+              </div>
+            )}
+
+            {/* Прогресс загрузки */}
+            {uploading && (
+              <div className="upload-progress-wrap">
+                <div className="upload-progress-bar" style={{ width: `${uploadPct}%` }} />
+                <span>{uploadPct}%</span>
+              </div>
+            )}
+
+            {/* Кнопка выбора файла */}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="video/*"
+              style={{ display: 'none' }}
+              onChange={e => { if (e.target.files[0]) setVideoFile(e.target.files[0]); }}
+            />
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm upload-btn"
+              onClick={() => fileRef.current.click()}
+            >
+              📁 {videoFile || existingVideo ? 'Заменить видео' : 'Выбрать видео файл'}
+            </button>
+            <small>Форматы: MP4, AVI, MOV, MKV · После загрузки видео отправится на проверку модератору</small>
           </div>
+
           <div className="form-group">
             <label>Описание урока</label>
             <textarea rows={3} value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="Что будем изучать в этом уроке..." />
@@ -207,8 +292,8 @@ function LessonModal({ courseId, lesson, onClose, onSave }) {
         </div>
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Отмена</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving || !form.title}>
-            {saving ? 'Сохранение...' : '💾 Сохранить'}
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving || uploading || !form.title}>
+            {uploading ? `Загрузка ${uploadPct}%...` : saving ? 'Сохранение...' : '💾 Сохранить'}
           </button>
         </div>
       </div>
@@ -473,6 +558,9 @@ export default function InstructorDashboard() {
                                 <span className="lesson-title">{l.title}</span>
                                 <span className="lesson-dur">{l.duration}</span>
                                 {l.isFree && <span className="free-tag">Бесплатно</span>}
+                                {l.videoStatus === 'pending'  && <span className="video-badge pending">⏳ Видео на проверке</span>}
+                                {l.videoStatus === 'approved' && <span className="video-badge approved">✅ Видео одобрено</span>}
+                                {l.videoStatus === 'rejected' && <span className="video-badge rejected" title={l.videoRejectNote}>❌ Видео отклонено</span>}
                               </div>
                               <div className="lesson-actions">
                                 <button className="action-btn" onClick={() => setLessonModal({ courseId: c.id, lesson: l })}>✏️</button>

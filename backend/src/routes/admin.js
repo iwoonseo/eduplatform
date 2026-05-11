@@ -144,4 +144,52 @@ router.get('/reviews', authMiddleware, adminOrMod, (req, res) => {
   res.json(reviews);
 });
 
+// ── VIDEO MODERATION ──────────────────────────────────────────────────────────
+
+// GET /api/admin/video-requests — все заявки на проверку видео
+router.get('/video-requests', authMiddleware, adminOrMod, (req, res) => {
+  res.json(db.videoRequests);
+});
+
+// PUT /api/admin/video-requests/:id/approve — одобрить видео
+router.put('/video-requests/:id/approve', authMiddleware, adminOrMod, (req, res) => {
+  const req_ = db.videoRequests.find(v => v.id === req.params.id);
+  if (!req_) return res.status(404).json({ message: 'Заявка не найдена' });
+
+  req_.status = 'approved';
+  req_.reviewedAt = new Date().toISOString();
+  req_.reviewNote = '';
+
+  // Обновить урок
+  const lesson = db.lessons.find(l => l.id === req_.lessonId);
+  if (lesson) {
+    lesson.videoStatus = 'approved';
+    // Используем демо-видео (в реальном проекте — ссылка на облако)
+    lesson.videoUrl = 'https://www.w3schools.com/html/mov_bbb.mp4';
+  }
+
+  res.json({ message: 'Видео одобрено', request: req_ });
+});
+
+// PUT /api/admin/video-requests/:id/reject — отклонить видео
+router.put('/video-requests/:id/reject', authMiddleware, adminOrMod, (req, res) => {
+  const req_ = db.videoRequests.find(v => v.id === req.params.id);
+  if (!req_) return res.status(404).json({ message: 'Заявка не найдена' });
+
+  const { note } = req.body;
+  req_.status = 'rejected';
+  req_.reviewedAt = new Date().toISOString();
+  req_.reviewNote = note || 'Видео не прошло проверку';
+
+  // Обновить урок
+  const lesson = db.lessons.find(l => l.id === req_.lessonId);
+  if (lesson) {
+    lesson.videoStatus = 'rejected';
+    lesson.videoRejectNote = req_.reviewNote;
+    lesson.videoUrl = '';
+  }
+
+  res.json({ message: 'Видео отклонено', request: req_ });
+});
+
 module.exports = router;

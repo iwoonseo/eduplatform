@@ -34,14 +34,17 @@ const ROLE_COLORS = {
 
 export default function ModeratorPanel() {
   const { user } = useAuth();
-  const [tab, setTab]         = useState('overview');
-  const [stats, setStats]     = useState({});
-  const [users, setUsers]     = useState([]);
-  const [courses, setCourses] = useState([]);
-  const [reviews, setReviews] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch]   = useState('');
-  const { toasts, success, error } = useToast();
+  const [tab, setTab]               = useState('overview');
+  const [stats, setStats]           = useState({});
+  const [users, setUsers]           = useState([]);
+  const [courses, setCourses]       = useState([]);
+  const [reviews, setReviews]       = useState([]);
+  const [videoRequests, setVideoRequests] = useState([]);
+  const [rejectNote, setRejectNote] = useState('');
+  const [rejectTarget, setRejectTarget]   = useState(null); // id заявки
+  const [loading, setLoading]       = useState(true);
+  const [search, setSearch]         = useState('');
+  const { toasts, success, error }  = useToast();
 
   const load = () => {
     setLoading(true);
@@ -50,11 +53,13 @@ export default function ModeratorPanel() {
       api.get('/admin/users'),
       api.get('/admin/courses'),
       api.get('/admin/reviews'),
-    ]).then(([s, u, c, r]) => {
+      api.get('/admin/video-requests'),
+    ]).then(([s, u, c, r, v]) => {
       setStats(s.data);
       setUsers(u.data);
       setCourses(c.data);
       setReviews(r.data);
+      setVideoRequests(v.data);
     }).catch(() => error('Ошибка загрузки данных'))
       .finally(() => setLoading(false));
   };
@@ -112,6 +117,24 @@ export default function ModeratorPanel() {
     } catch (e) { error('Ошибка'); }
   };
 
+  const approveVideo = async (reqId) => {
+    try {
+      await api.put(`/admin/video-requests/${reqId}/approve`);
+      setVideoRequests(v => v.map(x => x.id === reqId ? { ...x, status: 'approved', reviewedAt: new Date().toISOString() } : x));
+      success('Видео одобрено — урок доступен студентам');
+    } catch (e) { error(e.response?.data?.message || 'Ошибка'); }
+  };
+
+  const rejectVideo = async (reqId) => {
+    try {
+      await api.put(`/admin/video-requests/${reqId}/reject`, { note: rejectNote || 'Видео не прошло проверку' });
+      setVideoRequests(v => v.map(x => x.id === reqId ? { ...x, status: 'rejected', reviewedAt: new Date().toISOString(), reviewNote: rejectNote } : x));
+      setRejectTarget(null);
+      setRejectNote('');
+      success('Видео отклонено');
+    } catch (e) { error(e.response?.data?.message || 'Ошибка'); }
+  };
+
   const deleteReview = async (reviewId) => {
     if (!window.confirm('Удалить отзыв?')) return;
     try {
@@ -121,8 +144,11 @@ export default function ModeratorPanel() {
     } catch (e) { error('Ошибка'); }
   };
 
+  const pendingVideos = videoRequests.filter(v => v.status === 'pending').length;
+
   const TABS = [
     { id: 'overview', icon: '📊', label: 'Обзор' },
+    { id: 'videos',   icon: '🎬', label: `Видео${pendingVideos ? ` (${pendingVideos})` : ''}` },
     { id: 'users',    icon: '👥', label: 'Пользователи' },
     { id: 'courses',  icon: '📚', label: 'Курсы' },
     { id: 'reviews',  icon: '⭐', label: 'Отзывы' },
@@ -231,6 +257,80 @@ export default function ModeratorPanel() {
               <button className="qa-btn" onClick={() => setTab('reviews')}>⭐ Модерация отзывов</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── VIDEOS ── */}
+      {tab === 'videos' && (
+        <div className="admin-section">
+          <div className="admin-section-header">
+            <h2>🎬 Видео на проверке</h2>
+            <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>
+              {videoRequests.filter(v => v.status === 'pending').length} ожидают · {videoRequests.filter(v => v.status === 'approved').length} одобрено · {videoRequests.filter(v => v.status === 'rejected').length} отклонено
+            </span>
+          </div>
+
+          {videoRequests.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">🎬</div>
+              <h3>Нет видео на проверке</h3>
+              <p>Преподаватели ещё не загрузили видео</p>
+            </div>
+          ) : (
+            <div className="video-requests-list">
+              {videoRequests.map(v => (
+                <div key={v.id} className={`video-request-card status-${v.status}`}>
+                  <div className="vrc-header">
+                    <div className="vrc-info">
+                      <div className="vrc-title">🎬 {v.lessonTitle}</div>
+                      <div className="vrc-meta">
+                        <span>📚 {v.courseTitle}</span>
+                        <span>👨‍🏫 {v.instructorName}</span>
+                        <span>📁 {v.videoFileName}</span>
+                        {v.videoFileSize > 0 && (
+                          <span>💾 {(v.videoFileSize / (1024*1024)).toFixed(1)} МБ</span>
+                        )}
+                        <span>🕐 {new Date(v.submittedAt).toLocaleDateString('ru-RU')}</span>
+                      </div>
+                    </div>
+                    <div className="vrc-status">
+                      {v.status === 'pending'  && <span className="status-badge draft">⏳ На проверке</span>}
+                      {v.status === 'approved' && <span className="status-badge active">✅ Одобрено</span>}
+                      {v.status === 'rejected' && <span className="status-badge banned">❌ Отклонено</span>}
+                    </div>
+                  </div>
+
+                  {v.reviewNote && (
+                    <div className="vrc-note">💬 Комментарий: {v.reviewNote}</div>
+                  )}
+
+                  {/* Модальное поле для причины отклонения */}
+                  {rejectTarget === v.id && (
+                    <div className="vrc-reject-form">
+                      <input
+                        className="admin-search"
+                        placeholder="Причина отклонения (необязательно)..."
+                        value={rejectNote}
+                        onChange={e => setRejectNote(e.target.value)}
+                        autoFocus
+                      />
+                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                        <button className="action-btn delete" onClick={() => rejectVideo(v.id)}>❌ Подтвердить отклонение</button>
+                        <button className="action-btn" onClick={() => { setRejectTarget(null); setRejectNote(''); }}>Отмена</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {v.status === 'pending' && rejectTarget !== v.id && (
+                    <div className="vrc-actions">
+                      <button className="action-btn unban" onClick={() => approveVideo(v.id)} title="Одобрить видео">✅ Одобрить</button>
+                      <button className="action-btn ban" onClick={() => { setRejectTarget(v.id); setRejectNote(''); }} title="Отклонить видео">❌ Отклонить</button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

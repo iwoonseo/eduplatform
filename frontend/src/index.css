@@ -1261,6 +1261,72 @@ button { cursor: pointer; font-family: inherit; }
 [data-theme="dark"] .toast-error   { background: #450a0a; color: #fca5a5; }
 @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: none; } }
 
+/* ── VIDEO UPLOAD (Instructor) ─────────────────────────── */
+.upload-btn { margin-top: 8px; border: 2px dashed var(--border) !important; width: 100%; justify-content: center; }
+.upload-btn:hover { border-color: var(--primary) !important; background: var(--primary-light) !important; }
+.video-selected {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--primary-light); border-radius: var(--radius-sm);
+  padding: 8px 12px; font-size: 13px; font-weight: 600;
+  color: var(--primary-dark); margin-bottom: 8px;
+}
+.video-size { color: var(--text-muted); font-weight: 400; margin-left: auto; }
+.btn-icon-sm { background: none; border: none; cursor: pointer; font-size: 16px; color: var(--text-muted); padding: 0 4px; }
+.btn-icon-sm:hover { color: var(--danger); }
+
+.upload-progress-wrap {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 8px; font-size: 12px; font-weight: 600; color: var(--primary);
+}
+.upload-progress-bar {
+  height: 6px; background: var(--primary); border-radius: 3px;
+  transition: width 0.2s ease; flex: 1;
+}
+
+.video-status-bar {
+  padding: 8px 12px; border-radius: var(--radius-sm);
+  font-size: 13px; margin-bottom: 8px;
+}
+.video-status-bar.status-pending  { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+.video-status-bar.status-approved { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+.video-status-bar.status-rejected { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+/* Video status badges in lesson list */
+.video-badge {
+  font-size: 10px; font-weight: 700; padding: 2px 8px;
+  border-radius: 10px; white-space: nowrap;
+}
+.video-badge.pending  { background: #fef3c7; color: #92400e; }
+.video-badge.approved { background: #d1fae5; color: #065f46; }
+.video-badge.rejected { background: #fee2e2; color: #991b1b; cursor: help; }
+
+/* ── VIDEO MODERATION (Moderator) ─────────────────────── */
+.video-requests-list { display: flex; flex-direction: column; gap: 12px; }
+.video-request-card {
+  background: var(--card-bg); border-radius: var(--radius-sm);
+  border: 1px solid var(--border); padding: 16px 20px;
+  box-shadow: var(--shadow-sm);
+}
+.video-request-card.status-pending  { border-left: 4px solid #f59e0b; }
+.video-request-card.status-approved { border-left: 4px solid #10b981; }
+.video-request-card.status-rejected { border-left: 4px solid #ef4444; opacity: 0.8; }
+
+.vrc-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.vrc-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+.vrc-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 13px; color: var(--text-muted); }
+.vrc-note { margin-top: 10px; font-size: 13px; color: var(--text-muted); font-style: italic; }
+.vrc-actions { display: flex; gap: 10px; margin-top: 12px; }
+.vrc-reject-form { margin-top: 12px; }
+
+[data-theme="dark"] .video-request-card { background: var(--card-bg); }
+[data-theme="dark"] .video-status-bar.status-pending  { background: #422006; color: #fcd34d; border-color: #78350f; }
+[data-theme="dark"] .video-status-bar.status-approved { background: #052e16; color: #6ee7b7; border-color: #065f46; }
+[data-theme="dark"] .video-status-bar.status-rejected { background: #450a0a; color: #fca5a5; border-color: #991b1b; }
+[data-theme="dark"] .video-badge.pending  { background: #422006; color: #fcd34d; }
+[data-theme="dark"] .video-badge.approved { background: #052e16; color: #6ee7b7; }
+[data-theme="dark"] .video-badge.rejected { background: #450a0a; color: #fca5a5; }
+[data-theme="dark"] .video-selected { background: #1e1b4b; color: #a5b4fc; }
+
 /* ═══════════════════════════════════════════════════════
    DASHBOARD: student-specific additions
    ═══════════════════════════════════════════════════════ */
