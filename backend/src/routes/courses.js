@@ -3,20 +3,27 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../data/db');
 const { authMiddleware, optionalAuth } = require('../middleware/auth');
 
-// GET /api/courses — list with filters
+// роуты для работы с курсами
+// optionalAuth — значит авторизация не обязательна, но если токен есть — добавляем данные записи
+
+// GET /api/courses — список курсов с фильтрацией
 router.get('/', optionalAuth, (req, res) => {
+  // копируем массив чтобы не мутировать оригинал при сортировке
   let courses = [...db.courses];
   const { category, level, search, featured, sort } = req.query;
 
+  // применяем фильтры последовательно
   if (category) courses = courses.filter(c => c.category === category);
-  if (level) courses = courses.filter(c => c.level === level);
+  if (level)    courses = courses.filter(c => c.level === level);
   if (featured === 'true') courses = courses.filter(c => c.featured);
+
+  // поиск по названию, описанию и тегам — регистр не учитываем
   if (search) {
-    const q = search.toLowerCase();
+    const searchLower = search.toLowerCase();
     courses = courses.filter(c =>
-      c.title.toLowerCase().includes(q) ||
-      c.description.toLowerCase().includes(q) ||
-      c.tags.some(t => t.toLowerCase().includes(q))
+      c.title.toLowerCase().includes(searchLower) ||
+      c.description.toLowerCase().includes(searchLower) ||
+      c.tags.some(tag => tag.toLowerCase().includes(searchLower))
     );
   }
 

@@ -3,7 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import CourseCard from '../components/CourseCard';
 import api from '../api';
 
-/* ── Typewriter hook ─────────────────────────────────── */
+// главная страница — первое что видит пользователь
+// старался сделать красиво, добавил анимацию текста и счётчики
+
+/* слова которые меняются в заголовке */
 const HERO_WORDS = ['изменяющий жизнь', 'открывающий двери', 'дающий навыки', 'строящий карьеру'];
 
 function useTypewriter(speed = 80, pause = 1800) {
@@ -72,26 +75,36 @@ export default function Home() {
   const animInst     = useCountUp(stats.instructors, 1200, statsVisible);
 
   useEffect(() => {
+    // загружаем топ курсы для главной страницы
     api.get('/courses?featured=true&sort=rating').then(r => setFeatured(r.data.courses.slice(0, 3)));
+
+    // отдельный запрос для статистики — считаем уникальных преподавателей через Set
     api.get('/courses').then(r => {
-      const courses = r.data.courses;
+      const allCourses = r.data.courses;
+      // TODO: в будущем лучше получать статистику отдельным эндпоинтом
+      const uniqueInstructors = [...new Set(allCourses.map(c => c.instructorName))].length;
       setStats({
-        courses: courses.length,
-        students: courses.reduce((s, c) => s + c.studentCount, 0),
-        instructors: [...new Set(courses.map(c => c.instructorName))].length
+        courses: allCourses.length,
+        students: allCourses.reduce((sum, c) => sum + c.studentCount, 0),
+        instructors: uniqueInstructors
       });
       setStatsLoaded(true);
     });
   }, []);
 
   useEffect(() => {
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setStatsVisible(true); }, { threshold: 0.3 });
+    // IntersectionObserver — запускаем анимацию счётчиков когда блок виден на экране
+    // узнал про это из документации, очень удобная штука
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) setStatsVisible(true);
+    }, { threshold: 0.3 });
     if (statsRef.current) obs.observe(statsRef.current);
     return () => obs.disconnect();
   }, []);
 
   const handleSearch = e => {
     e.preventDefault();
+    if (!search.trim()) return; // пустой поиск не отправляем
     navigate(`/courses?search=${encodeURIComponent(search)}`);
   };
 

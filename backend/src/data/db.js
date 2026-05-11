@@ -1,18 +1,21 @@
-// In-memory database (no external DB required)
+// База данных в памяти — используется вместо реальной БД для учебного проекта
+// При перезапуске сервера данные сбрасываются, но seed заново заполняет всё нужное
+// TODO: в реальном проекте заменить на PostgreSQL или MongoDB
+
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcryptjs');
 
 const db = {
-  users: [],
-  courses: [],
-  enrollments: [],
-  lessons: [],
-  reviews: [],
-  progress: [],
-  messages: [],        // чат студент <-> препод
-  conversations: [],   // диалоги
-  courseRequests: [],  // заявки на публикацию курса (от препода → админу)
-  videoRequests: [],   // заявки на проверку видео (от препода → модератору)
+  users:         [],
+  courses:       [],
+  enrollments:   [],
+  lessons:       [],
+  reviews:       [],
+  progress:      [],
+  messages:      [],       // сообщения чата (студент <-> преподаватель)
+  conversations: [],       // список диалогов
+  courseRequests:[],       // заявки от преподавателей на публикацию
+  videoRequests: [],       // видео загруженные преподавателями — ждут проверки модератора
 };
 
 // ─── Seed Data ────────────────────────────────────────────────────────────────

@@ -1,61 +1,76 @@
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const jwt    = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../data/db');
 const { JWT_SECRET, authMiddleware } = require('../middleware/auth');
 
-// POST /api/auth/register
+// маршруты авторизации: регистрация, вход, получение профиля
+
+// POST /api/auth/register — новый пользователь
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
+
+    // базовая проверка полей
     if (!name || !email || !password)
       return res.status(400).json({ message: 'Заполните все поля' });
     if (password.length < 6)
       return res.status(400).json({ message: 'Пароль минимум 6 символов' });
 
+    // проверяем нет ли уже такого email в базе
     const exists = db.users.find(u => u.email === email);
     if (exists) return res.status(400).json({ message: 'Email уже зарегистрирован' });
 
-    // Разрешённые роли при регистрации (admin нельзя выбрать)
+    // admin и moderator нельзя выбрать при регистрации — только через панель
     const allowedRoles = ['student', 'instructor'];
     const userRole = allowedRoles.includes(role) ? role : 'student';
 
+    // хешируем пароль перед сохранением — bcrypt сам добавляет соль
     const hashed = await bcrypt.hash(password, 10);
-    const user = {
+
+    const newUser = {
       id: uuidv4(),
       name,
       email,
       password: hashed,
       role: userRole,
+      // аватар генерируется автоматически из имени — удобно для демо
       avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff`,
       bio: '',
       createdAt: new Date().toISOString()
     };
-    db.users.push(user);
+    db.users.push(newUser);
 
-    const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-    const { password: _, ...safe } = user;
-    res.status(201).json({ token, user: safe });
+    // выдаём токен сразу после регистрации чтобы не надо было отдельно логиниться
+    const token = jwt.sign({ id: newUser.id, role: newUser.role }, JWT_SECRET, { expiresIn: '7d' });
+    const { password: _pw, ...safeUser } = newUser; // пароль не отдаём клиенту
+    res.status(201).json({ token, user: safeUser });
   } catch (err) {
+    console.error('Ошибка при регистрации:', err.message);
     res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
-// POST /api/auth/login
+// POST /api/auth/login — вход в систему
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    // ищем пользователя по email (без учёта регистра не делал — TODO)
     const user = db.users.find(u => u.email === email);
     if (!user) return res.status(400).json({ message: 'Неверный email или пароль' });
 
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) return res.status(400).json({ message: 'Неверный email или пароль' });
+    // нельзя войти если аккаунт заблокирован
+    if (user.banned) return res.status(403).json({ message: 'Аккаунт заблокирован. Обратитесь к администратору.' });
+
+    const isPasswordOk = await bcrypt.compare(password, user.password);
+    if (!isPasswordOk) return res.status(400).json({ message: 'Неверный email или пароль' });
 
     const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-    const { password: _, ...safe } = user;
-    res.json({ token, user: safe });
-  } catch {
+    const { password: _pw, ...safeUser } = user;
+    res.json({ token, user: safeUser });
+  } catch (err) {
     res.status(500).json({ message: 'Ошибка сервера' });
   }
 });

@@ -3,33 +3,45 @@ import { useSearchParams } from 'react-router-dom';
 import CourseCard from '../components/CourseCard';
 import api from '../api';
 
+// страница каталога — тут вся логика фильтрации
+// фильтры хранятся в URL чтобы можно было скопировать ссылку с нужными параметрами
+
 export default function Courses() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState({ courses: [], categories: [], levels: [], total: 0 });
   const [loading, setLoading] = useState(true);
 
+  // читаем фильтры прямо из URL
   const category = searchParams.get('category') || '';
-  const level = searchParams.get('level') || '';
-  const search = searchParams.get('search') || '';
-  const sort = searchParams.get('sort') || 'popular';
+  const level    = searchParams.get('level')    || '';
+  const search   = searchParams.get('search')   || '';
+  const sort     = searchParams.get('sort')     || 'popular';
 
+  // отдельный стейт для инпута чтобы не делать запрос на каждый символ
   const [searchInput, setSearchInput] = useState(search);
 
   useEffect(() => { setSearchInput(search); }, [search]);
 
   useEffect(() => {
     setLoading(true);
+    // собираем параметры запроса вручную
     const params = new URLSearchParams();
     if (category) params.set('category', category);
-    if (level) params.set('level', level);
-    if (search) params.set('search', search);
-    if (sort) params.set('sort', sort);
-    api.get(`/courses?${params}`).then(r => setData(r.data)).finally(() => setLoading(false));
+    if (level)    params.set('level', level);
+    if (search)   params.set('search', search);
+    if (sort)     params.set('sort', sort);
+
+    api.get(`/courses?${params}`)
+      .then(r => setData(r.data))
+      // .catch(err => console.log('ошибка загрузки курсов', err)) // пока убрал
+      .finally(() => setLoading(false));
   }, [category, level, search, sort]);
 
+  // обновляет один фильтр не трогая остальные
   const updateFilter = (key, val) => {
     const p = new URLSearchParams(searchParams);
-    if (val) p.set(key, val); else p.delete(key);
+    if (val) p.set(key, val);
+    else p.delete(key);
     setSearchParams(p);
   };
 
@@ -38,6 +50,7 @@ export default function Courses() {
     updateFilter('search', searchInput);
   };
 
+  // сбросить все фильтры разом
   const clearFilters = () => {
     setSearchParams({});
     setSearchInput('');
