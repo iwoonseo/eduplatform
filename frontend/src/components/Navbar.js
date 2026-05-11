@@ -28,18 +28,24 @@ const ROLE_NAV = {
     { to: '/admin',   label: '👑 Панель управления' },
     { to: '/courses', label: '📚 Каталог' },
   ],
+  moderator: [
+    { to: '/moderator', label: '🛡️ Модерация' },
+    { to: '/courses',   label: '📚 Каталог' },
+  ],
 };
 
 const ROLE_LABEL = {
   student:    { text: 'Студент',        color: '#ec4899' },
   instructor: { text: 'Преподаватель',  color: '#10b981' },
   admin:      { text: 'Администратор',  color: '#6366f1' },
+  moderator:  { text: 'Модератор',      color: '#f59e0b' },
 };
 
 const ROLE_HOME = {
   student:    '/dashboard',
   instructor: '/instructor',
   admin:      '/admin',
+  moderator:  '/moderator',
 };
 
 export default function Navbar() {
@@ -137,6 +143,11 @@ export default function Navbar() {
                   {user.role === 'admin' && (
                     <>
                       <Link to="/admin" className="dropdown-item" onClick={() => setDropdownOpen(false)}>👑 Панель управления</Link>
+                    </>
+                  )}
+                  {user.role === 'moderator' && (
+                    <>
+                      <Link to="/moderator" className="dropdown-item" onClick={() => setDropdownOpen(false)}>🛡️ Панель модератора</Link>
                     </>
                   )}
                   <div className="dropdown-divider"></div>

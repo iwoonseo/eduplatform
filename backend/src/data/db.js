@@ -22,6 +22,17 @@ function seed() {
   // ── USERS ──────────────────────────────────────────────────────────────────
   db.users.push(
     {
+      id: 'u0',
+      name: 'Сергей Модератов',
+      email: 'moderator@edu.ru',
+      password: bcrypt.hashSync('moderator123', salt),
+      role: 'moderator',
+      avatar: 'https://ui-avatars.com/api/?name=Сергей+Модератов&background=f59e0b&color=fff',
+      bio: 'Главный модератор платформы EduPlatform',
+      createdAt: new Date('2024-01-01').toISOString(),
+      banned: false
+    },
+    {
       id: 'u1',
       name: 'Алексей Петров',
       email: 'admin@edu.ru',

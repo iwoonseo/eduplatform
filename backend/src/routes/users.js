@@ -22,9 +22,9 @@ router.get('/dashboard', authMiddleware, (req, res) => {
   res.json({ courses: myCourses, stats });
 });
 
-// GET /api/users/stats (for admin)
+// GET /api/users/stats (for admin and moderator)
 router.get('/stats', authMiddleware, (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Нет доступа' });
+  if (!['admin', 'moderator'].includes(req.user.role)) return res.status(403).json({ message: 'Нет доступа' });
   res.json({
     users: db.users.length,
     courses: db.courses.length,

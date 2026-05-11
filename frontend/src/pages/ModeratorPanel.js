@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import api from '../api';
 
 /* ── Stat Card ───────────────────────────────────────── */
@@ -24,16 +25,22 @@ function useToast() {
   return { toasts, success: msg => add(msg, 'success'), error: msg => add(msg, 'error') };
 }
 
-// Права admin: бан/разбан, смена роли (только student/instructor), публикация курсов, удаление отзывов
-// Права moderator: всё вышеперечисленное + удаление пользователей/курсов, назначение любой роли
-export default function AdminPanel() {
-  const [tab, setTab] = useState('overview');
-  const [stats, setStats]       = useState({});
-  const [users, setUsers]       = useState([]);
-  const [courses, setCourses]   = useState([]);
-  const [reviews, setReviews]   = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [search, setSearch]     = useState('');
+const ROLE_COLORS = {
+  admin:      '#6366f1',
+  moderator:  '#f59e0b',
+  instructor: '#10b981',
+  student:    '#ec4899',
+};
+
+export default function ModeratorPanel() {
+  const { user } = useAuth();
+  const [tab, setTab]         = useState('overview');
+  const [stats, setStats]     = useState({});
+  const [users, setUsers]     = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch]   = useState('');
   const { toasts, success, error } = useToast();
 
   const load = () => {
@@ -72,7 +79,7 @@ export default function AdminPanel() {
   };
 
   const deleteUser = async (userId) => {
-    if (!window.confirm('Удалить пользователя?')) return;
+    if (!window.confirm('Удалить пользователя? Это действие необратимо.')) return;
     try {
       await api.delete(`/admin/users/${userId}`);
       setUsers(u => u.filter(x => x.id !== userId));
@@ -92,7 +99,7 @@ export default function AdminPanel() {
     try {
       const res = await api.put(`/admin/courses/${courseId}/featured`);
       setCourses(c => c.map(x => x.id === courseId ? { ...x, featured: res.data.featured } : x));
-      success(res.data.featured ? 'Добавлен в избранное' : 'Убран из избранного');
+      success(res.data.featured ? 'Добавлен в топ' : 'Убран из топа');
     } catch (e) { error('Ошибка'); }
   };
 
@@ -115,10 +122,10 @@ export default function AdminPanel() {
   };
 
   const TABS = [
-    { id: 'overview',  icon: '📊', label: 'Обзор' },
-    { id: 'users',     icon: '👥', label: 'Пользователи' },
-    { id: 'courses',   icon: '📚', label: 'Курсы' },
-    { id: 'reviews',   icon: '⭐', label: 'Отзывы' },
+    { id: 'overview', icon: '📊', label: 'Обзор' },
+    { id: 'users',    icon: '👥', label: 'Пользователи' },
+    { id: 'courses',  icon: '📚', label: 'Курсы' },
+    { id: 'reviews',  icon: '⭐', label: 'Отзывы' },
   ];
 
   const filteredUsers   = users.filter(u =>
@@ -130,13 +137,11 @@ export default function AdminPanel() {
     c.instructorName.toLowerCase().includes(search.toLowerCase())
   );
 
-  const ROLE_COLORS = { admin: '#6366f1', moderator: '#f59e0b', instructor: '#10b981', student: '#ec4899' };
-
   if (loading) return <div className="page-loader"><div className="spinner"></div></div>;
 
   return (
     <div className="admin-page">
-      {/* Toast notifications */}
+      {/* Toasts */}
       <div className="toast-container">
         {toasts.map(t => (
           <div key={t.id} className={`toast toast-${t.type}`}>{t.msg}</div>
@@ -146,11 +151,12 @@ export default function AdminPanel() {
       {/* Header */}
       <div className="admin-header">
         <div>
-          <h1>👑 Панель администратора</h1>
-          <p>Управление пользователями и курсами · Удаление и назначение ролей admin/moderator — только для модератора</p>
+          <h1>🛡️ Панель модератора</h1>
+          <p>Полное управление платформой EduPlatform</p>
         </div>
         <div className="admin-header-stats">
-          <span>🕐 {new Date().toLocaleString('ru-RU', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+          <span style={{ color: '#f59e0b', fontWeight: 600 }}>👤 {user?.name}</span>
+          <span style={{ marginLeft: 16 }}>🕐 {new Date().toLocaleString('ru-RU', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
         </div>
       </div>
 
@@ -171,28 +177,21 @@ export default function AdminPanel() {
       {tab === 'overview' && (
         <div>
           <div className="admin-stats-grid">
-            <StatCard icon="🎓" label="Студентов"       value={stats.students}     color="#ec4899" sub="зарегистрировано" />
-            <StatCard icon="👨‍🏫" label="Преподавателей" value={stats.instructors}   color="#10b981" sub="активных" />
-            <StatCard icon="📚" label="Курсов"          value={stats.courses}      color="#6366f1" sub={`${stats.published} опубликовано`} />
-            <StatCard icon="📝" label="Записей"         value={stats.enrollments}  color="#f59e0b" sub="на курсы" />
-            <StatCard icon="⭐" label="Отзывов"         value={stats.reviews}      color="#3b82f6" sub="оставлено" />
+            <StatCard icon="🎓" label="Студентов"       value={stats.students}         color="#ec4899" sub="зарегистрировано" />
+            <StatCard icon="👨‍🏫" label="Преподавателей" value={stats.instructors}       color="#10b981" sub="активных" />
+            <StatCard icon="📚" label="Курсов"          value={stats.courses}          color="#6366f1" sub={`${stats.published} опубликовано`} />
+            <StatCard icon="📝" label="Записей"         value={stats.enrollments}      color="#f59e0b" sub="на курсы" />
+            <StatCard icon="⭐" label="Отзывов"         value={stats.reviews}          color="#3b82f6" sub="оставлено" />
             <StatCard icon="✅" label="Завершений"      value={stats.completedCourses} color="#06b6d4" sub="курсов пройдено" />
-            <StatCard
-              icon="💰"
-              label="Выручка"
-              value={`${(stats.revenue || 0).toLocaleString('ru')} ₸`}
-              color="#84cc16"
-              sub="суммарная"
-            />
+            <StatCard icon="💰" label="Выручка"         value={`${(stats.revenue || 0).toLocaleString('ru')} ₸`} color="#84cc16" sub="суммарная" />
           </div>
 
-          {/* Charts placeholder */}
           <div className="admin-charts">
             <div className="admin-chart-card">
               <h3>📈 Распределение ролей</h3>
               <div className="role-chart">
                 {[
-                  { label: 'Студенты', count: stats.students, color: '#ec4899' },
+                  { label: 'Студенты',      count: stats.students,    color: '#ec4899' },
                   { label: 'Преподаватели', count: stats.instructors, color: '#10b981' },
                 ].map(r => {
                   const total = (stats.students || 0) + (stats.instructors || 0);
@@ -224,7 +223,6 @@ export default function AdminPanel() {
             </div>
           </div>
 
-          {/* Quick Actions */}
           <div className="admin-quick-actions">
             <h3>⚡ Быстрые действия</h3>
             <div className="quick-actions-grid">
@@ -236,7 +234,7 @@ export default function AdminPanel() {
         </div>
       )}
 
-      {/* ── USERS ── */}
+      {/* ── USERS ── (полный доступ: смена любой роли + удаление) */}
       {tab === 'users' && (
         <div className="admin-section">
           <div className="admin-section-header">
@@ -248,7 +246,6 @@ export default function AdminPanel() {
               onChange={e => setSearch(e.target.value)}
             />
           </div>
-
           <div className="admin-table-wrap">
             <table className="admin-table">
               <thead>
@@ -275,18 +272,18 @@ export default function AdminPanel() {
                     </td>
                     <td className="email-cell">{u.email}</td>
                     <td>
-                      {/* Admin может назначать только student/instructor */}
+                      {/* Модератор может назначать любую роль, включая admin и moderator */}
                       <select
                         className="role-select"
                         value={u.role}
                         style={{ color: ROLE_COLORS[u.role] }}
                         onChange={e => changeRole(u.id, e.target.value)}
-                        disabled={u.role === 'admin' || u.role === 'moderator'}
+                        disabled={u.id === user?.id}
                       >
                         <option value="student">🎓 Студент</option>
                         <option value="instructor">👨‍🏫 Преподаватель</option>
-                        {(u.role === 'admin') && <option value="admin">👑 Администратор</option>}
-                        {(u.role === 'moderator') && <option value="moderator">🛡️ Модератор</option>}
+                        <option value="admin">👑 Администратор</option>
+                        <option value="moderator">🛡️ Модератор</option>
                       </select>
                     </td>
                     <td className="center">
@@ -303,10 +300,19 @@ export default function AdminPanel() {
                           className={`action-btn ${u.banned ? 'unban' : 'ban'}`}
                           onClick={() => toggleBan(u.id)}
                           title={u.banned ? 'Разблокировать' : 'Заблокировать'}
+                          disabled={u.id === user?.id}
                         >
                           {u.banned ? '🔓' : '🔒'}
                         </button>
-                        {/* Удаление пользователей — только для модератора, admin не может */}
+                        {/* Только модератор может удалять пользователей */}
+                        <button
+                          className="action-btn delete"
+                          onClick={() => deleteUser(u.id)}
+                          title="Удалить пользователя"
+                          disabled={u.id === user?.id}
+                        >
+                          🗑
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -317,7 +323,7 @@ export default function AdminPanel() {
         </div>
       )}
 
-      {/* ── COURSES ── */}
+      {/* ── COURSES ── (полный доступ: публикация + удаление) */}
       {tab === 'courses' && (
         <div className="admin-section">
           <div className="admin-section-header">
@@ -329,7 +335,6 @@ export default function AdminPanel() {
               onChange={e => setSearch(e.target.value)}
             />
           </div>
-
           <div className="admin-table-wrap">
             <table className="admin-table">
               <thead>
@@ -385,7 +390,14 @@ export default function AdminPanel() {
                         >
                           ⭐
                         </button>
-                        {/* Удаление курсов — только для модератора */}
+                        {/* Только модератор может удалять курсы */}
+                        <button
+                          className="action-btn delete"
+                          onClick={() => deleteCourse(c.id)}
+                          title="Удалить курс"
+                        >
+                          🗑
+                        </button>
                       </div>
                     </td>
                   </tr>

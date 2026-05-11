@@ -16,6 +16,7 @@ import Learn            from './pages/Learn';
 import Dashboard        from './pages/Dashboard';          // student
 import InstructorDashboard from './pages/InstructorDashboard'; // instructor
 import AdminPanel       from './pages/AdminPanel';          // admin
+import ModeratorPanel   from './pages/ModeratorPanel';      // moderator
 import Chat             from './pages/Chat';                // student + instructor
 
 // ── Guards ────────────────────────────────────────────────────────────────────
@@ -39,6 +40,7 @@ function DashboardRedirect() {
   if (loading) return <div className="page-loader"><div className="spinner"></div></div>;
   if (!user) return <Navigate to="/login" replace />;
   if (user.role === 'admin')       return <Navigate to="/admin"      replace />;
+  if (user.role === 'moderator')   return <Navigate to="/moderator"  replace />;
   if (user.role === 'instructor')  return <Navigate to="/instructor" replace />;
   return <Navigate to="/dashboard" replace />;
 }
@@ -94,6 +96,10 @@ function AppLayout() {
               {/* 👑 Администратор */}
               <Route path="/admin"    element={<RequireRole roles={['admin']}><AdminPanel /></RequireRole>} />
               <Route path="/admin/*"  element={<RequireRole roles={['admin']}><AdminPanel /></RequireRole>} />
+
+              {/* 🛡️ Модератор */}
+              <Route path="/moderator"   element={<RequireRole roles={['moderator']}><ModeratorPanel /></RequireRole>} />
+              <Route path="/moderator/*" element={<RequireRole roles={['moderator']}><ModeratorPanel /></RequireRole>} />
 
               {/* Fallback */}
               <Route path="*" element={<Navigate to="/" replace />} />
